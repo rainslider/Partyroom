@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Partyroom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;600&family=JetBrains+Mono:wght@700&display=swap">
+<style>
+/* Layout: one narrow column; the party code is a ticket stub with a perforated edge, members and chat sit below it. */
+:root {
+  --bg: #EEF1F6;
+  --fg: #151824;
+  --muted: #5B6275;
+  --card: #FFFFFF;
+  --line: #D6DBE6;
+  --accent: #D93A28;
+  --accent-ink: #FFFFFF;
+  --cell: rgba(0, 0, 0, 0.16);
+  --pop: #FFD23F;
+  --pop-ink: #3A2D00;
+  --err: #B3261E;
+  --font-display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-code: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12141D; --fg: #EEF0F7; --muted: #9AA1B5; --card: #1B1E2A; --line: #2D3242;
+    --accent: #FF6B57; --accent-ink: #1E0A06; --cell: rgba(0, 0, 0, 0.18);
+    --pop: #FFD23F; --pop-ink: #3A2D00; --err: #FF8A80; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12141D; --fg: #EEF0F7; --muted: #9AA1B5; --card: #1B1E2A; --line: #2D3242;
+  --accent: #FF6B57; --accent-ink: #1E0A06; --cell: rgba(0, 0, 0, 0.18);
+  --pop: #FFD23F; --pop-ink: #3A2D00; --err: #FF8A80; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.5;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.logo { font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: -0.01em; }
+.conn { font-size: 13px; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(34px, 10vw, 48px); line-height: 1.02; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: 20px; margin: 0; }
+p { margin: 0; }
+.lead { color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+label { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+input[type="text"] {
+  font: inherit; color: var(--fg); background: var(--card); border: 2px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; width: 100%; min-width: 0;
+}
+input[type="text"]:focus-visible, .btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row input { flex: 1 1 140px; }
+#code { font-family: var(--font-code); font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase; text-align: center; }
+.btn {
+  font: inherit; font-weight: 600; cursor: pointer; border-radius: 12px; padding: 12px 18px;
+  border: 2px solid var(--fg); background: transparent; color: var(--fg);
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.small { padding: 8px 14px; font-size: 14px; }
+.hint { font-size: 13px; color: var(--muted); }
+#msg { min-height: 1.5em; font-weight: 600; }
+#msg.err { color: var(--err); }
+
+.ticket { background: var(--accent); color: var(--accent-ink); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.ticket .kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.9; }
+.cells { display: flex; gap: 6px; }
+.cell {
+  flex: 1 1 0; min-width: 0; text-align: center; background: var(--cell); border-radius: 10px; padding: 10px 0;
+  font-family: var(--font-code); font-weight: 700; font-size: clamp(26px, 9vw, 42px); line-height: 1.1;
+}
+.perf { position: relative; border-top: 2px dashed currentColor; opacity: 1; }
+.perf::before, .perf::after { content: ""; position: absolute; top: -12px; width: 22px; height: 22px; border-radius: 50%; background: var(--bg); }
+.perf::before { left: -31px; }
+.perf::after { right: -31px; }
+.stub { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.stub .who { font-weight: 600; }
+.ticket .btn { border-color: var(--accent-ink); color: var(--accent-ink); }
+
+.banner { background: var(--pop); color: var(--pop-ink); border-radius: 12px; padding: 10px 14px; font-weight: 600; }
+.members { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.members li { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+.members .name { overflow-wrap: anywhere; min-width: 0; }
+.tag { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 999px; padding: 2px 8px; border: 1px solid var(--line); color: var(--muted); }
+.tag.host { background: var(--pop); border-color: var(--pop); color: var(--pop-ink); }
+.count { color: var(--muted); font-weight: 400; }
+
+.chatlog { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; min-height: 56px; }
+.bubble { align-self: flex-start; max-width: 90%; background: var(--bg); border-radius: 12px; padding: 8px 12px; overflow-wrap: anywhere; }
+.bubble.mine { align-self: flex-end; background: var(--accent); color: var(--accent-ink); }
+.bubble b { display: block; font-size: 12px; opacity: 0.8; }
+.empty { color: var(--muted); font-size: 14px; }
+@media (prefers-reduced-motion: no-preference) {
+  .btn { transition: transform 0.12s ease; }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="logo">Partyroom</span>
+    <span class="conn" id="conn"></span>
+  </header>
+
+  <section id="home">
+    <h1>Maak een party. Deel de code.</h1>
+    <p class="lead">Start een party, stuur de code naar je vrienden en zij komen binnen via Join party.</p>
+
+    <div class="field">
+      <label for="nick">Jouw naam</label>
+      <input type="text" id="nick" maxlength="20" placeholder="Bijvoorbeeld Sam" autocomplete="off">
+    </div>
+
+    <div class="panel">
+      <h2>Party maken</h2>
+      <p class="hint">Je krijgt een code van 5 tekens die je kunt delen.</p>
+      <button type="button" class="btn primary" id="create" disabled>Party maken</button>
+    </div>
+
+    <form class="panel" id="joinForm">
+      <h2>Join party</h2>
+      <div class="row">
+        <input type="text" id="code" maxlength="5" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Partycode">
+        <button type="submit" class="btn" id="joinBtn" disabled>Join party</button>
+      </div>
+      <p class="hint">De code bestaat uit 5 letters en cijfers.</p>
+    </form>
+
+    <p id="msg" role="status" aria-live="polite"></p>
+  </section>
+
+  <section id="party" hidden>
+    <div class="ticket">
+      <span class="kicker">Partycode</span>
+      <div class="cells" id="cells" aria-label="Partycode"></div>
+      <div class="perf"></div>
+      <div class="stub">
+        <span class="who" id="who"></span>
+        <span class="row">
+          <button type="button" class="btn small" id="copy">Code kopiëren</button>
+          <button type="button" class="btn small" id="leave">Verlaten</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="banner" id="nohost" hidden>De host heeft de party verlaten. Je kunt nog chatten met wie er is.</div>
+
+    <div class="panel">
+      <h2>In de party <span class="count" id="count"></span></h2>
+      <ul class="members" id="members"></ul>
+    </div>
+
+    <div class="panel">
+      <h2>Chat</h2>
+      <div class="chatlog" id="chatlog" aria-live="polite"><p class="empty" id="chatEmpty">Nog geen berichten. Zeg hallo.</p></div>
+      <form class="row" id="chatForm">
+        <input type="text" id="chatText" maxlength="200" placeholder="Typ een bericht" autocomplete="off" aria-label="Bericht">
+        <button type="submit" class="btn primary">Stuur</button>
+      </form>
+      <p class="hint" id="chatNote"></p>
+    </div>
+  </section>
+</div>
+
+
+<script>
+(function () {
+  var ALPHA = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  var COLORS = ["#E5503E", "#2F80ED", "#12A150", "#E0A100", "#8A5CF6", "#E5399B", "#00A3A3", "#6B7280"];
+  var es = null;
+  var party = null;
+  var busy = false;
+
+  function $(id) { return document.getElementById(id); }
+  function msg(text, isErr) { var m = $("msg"); m.textContent = text || ""; m.className = isErr ? "err" : ""; }
+  function getName() {
+    var n = $("nick").value.trim().slice(0, 20);
+    if (!n) n = "Gast " + (10 + Math.floor(Math.random() * 90));
+    try { localStorage.setItem("partyroom-name", n); } catch (e) {}
+    return n;
+  }
+  function colorOf(c) { var i = Math.abs(parseInt(c, 10)) || 0; return COLORS[i % COLORS.length]; }
+  function setBusy(b) { busy = b; $("create").disabled = b; $("joinBtn").disabled = b; }
+
+  try { var saved = localStorage.getItem("partyroom-name"); if (saved) $("nick").value = saved; } catch (e) {}
+
+  $("code").addEventListener("input", function () {
+    this.value = this.value.toUpperCase().split("").filter(function (ch) { return ALPHA.indexOf(ch) !== -1; }).join("");
+  });
+
+  function post(payload) {
+    if (!party) return Promise.reject(new Error("geen party"));
+    payload.id = party.id;
+    payload.token = party.token;
+    return fetch("/party/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  }
+
+  function goHome(text, isErr) {
+    if (es) { es.close(); es = null; }
+    party = null;
+    setBusy(false);
+    $("party").hidden = true;
+    $("home").hidden = false;
+    msg(text || "", isErr);
+  }
+
+  function enter(mode, code) {
+    if (busy) return;
+    setBusy(true);
+    msg(mode === "create" ? "Party wordt gemaakt..." : "Party zoeken...");
+    var name = getName();
+    var c = Math.floor(Math.random() * COLORS.length);
+    var url = "/party/events?mode=" + mode + "&name=" + encodeURIComponent(name) + "&c=" + c + (code ? "&code=" + code : "");
+    var joined = false;
+    es = new EventSource(url);
+
+    es.addEventListener("joined", function (e) {
+      var d = JSON.parse(e.data);
+      joined = true;
+      party = { id: d.id, token: d.token, code: d.code, asHost: d.host, name: name, members: [] };
+      setBusy(false);
+      msg("");
+      showParty();
+    });
+    es.addEventListener("members", function (e) {
+      if (!party) return;
+      party.members = JSON.parse(e.data);
+      renderPeers();
+    });
+    es.addEventListener("chat", function (e) { onChat(JSON.parse(e.data)); });
+    es.addEventListener("problem", function (e) {
+      var d = JSON.parse(e.data);
+      goHome(d.message, true);
+    });
+    es.onerror = function () {
+      if (!es) return;
+      if (joined) goHome("De verbinding is verbroken. Maak of join de party opnieuw.", true);
+      else goHome("Verbinden lukt niet. Probeer het zo nog eens.", true);
+    };
+  }
+
+  function showParty() {
+    $("home").hidden = true;
+    $("party").hidden = false;
+    var cells = $("cells");
+    cells.textContent = "";
+    party.code.split("").forEach(function (ch) {
+      var d = document.createElement("div");
+      d.className = "cell";
+      d.textContent = ch;
+      cells.appendChild(d);
+    });
+    $("who").textContent = party.asHost ? "Jij bent de host" : "Je bent erbij als " + party.name;
+    $("copy").textContent = "Code kopiëren";
+    $("chatNote").textContent = "";
+    $("chatlog").textContent = "";
+    var empty = document.createElement("p");
+    empty.className = "empty";
+    empty.id = "chatEmpty";
+    empty.textContent = "Nog geen berichten. Zeg hallo.";
+    $("chatlog").appendChild(empty);
+  }
+
+  function renderPeers() {
+    if (!party) return;
+    var ul = $("members");
+    ul.textContent = "";
+    var meHost = false;
+    party.members.forEach(function (p) {
+      if (p.id === party.id && p.host) meHost = true;
+      var li = document.createElement("li");
+      var dot = document.createElement("span");
+      dot.className = "dot";
+      dot.style.background = colorOf(p.c);
+      var nm = document.createElement("span");
+      nm.className = "name";
+      nm.textContent = p.name;
+      li.appendChild(dot);
+      li.appendChild(nm);
+      if (p.host) { var h = document.createElement("span"); h.className = "tag host"; h.textContent = "host"; li.appendChild(h); }
+      if (p.id === party.id) { var me = document.createElement("span"); me.className = "tag"; me.textContent = "jij"; li.appendChild(me); }
+      ul.appendChild(li);
+    });
+    $("count").textContent = "(" + party.members.length + ")";
+    if (meHost) $("who").textContent = "Jij bent de host";
+  }
+
+  function onChat(d) {
+    if (!party || typeof d.text !== "string") return;
+    var log = $("chatlog");
+    var empty = $("chatEmpty");
+    if (empty) empty.remove();
+    var b = document.createElement("div");
+    b.className = "bubble" + (d.id === party.id ? " mine" : "");
+    var who = document.createElement("b");
+    who.textContent = String(d.name || "Gast").slice(0, 20);
+    var body = document.createElement("span");
+    body.textContent = d.text.slice(0, 200);
+    b.appendChild(who);
+    b.appendChild(body);
+    log.appendChild(b);
+    while (log.children.length > 100) log.removeChild(log.firstChild);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  $("create").addEventListener("click", function () { enter("create"); });
+
+  $("joinForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var code = $("code").value.trim().toUpperCase();
+    if (code.length !== 5) { msg("Een partycode heeft 5 tekens.", true); return; }
+    enter("join", code);
+  });
+
+  $("copy").addEventListener("click", function () {
+    var btn = this;
+    var code = party ? party.code : "";
+    function reset() { setTimeout(function () { btn.textContent = "Code kopiëren"; }, 1800); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(function () { btn.textContent = "Gekopieerd"; reset(); },
+        function () { btn.textContent = "Typ de code over"; reset(); });
+    } else {
+      btn.textContent = "Typ de code over";
+      reset();
+    }
+  });
+
+  $("leave").addEventListener("click", function () {
+    if (party) { try { post({ t: "leave" }); } catch (e) {} }
+    $("code").value = "";
+    goHome("Je hebt de party verlaten.");
+  });
+
+  window.addEventListener("pagehide", function () {
+    if (party && navigator.sendBeacon) {
+      navigator.sendBeacon("/party/send", new Blob([JSON.stringify({ t: "leave", id: party.id, token: party.token })], { type: "application/json" }));
+    }
+  });
+
+  $("chatForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!party) return;
+    var input = $("chatText");
+    var text = input.value.trim();
+    if (!text) return;
+    post({ t: "chat", text: text }).then(function (r) {
+      if (r.ok) { input.value = ""; $("chatNote").textContent = ""; }
+      else $("chatNote").textContent = r.status === 429 ? "Rustig aan, wacht heel even." : "Bericht niet verstuurd.";
+    }, function () {
+      $("chatNote").textContent = "Bericht niet verstuurd. Probeer het nog eens.";
+    });
+  });
+})();
+</script>
+</body>
+</html>
